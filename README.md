@@ -1,14 +1,21 @@
 Thinkphp5.1 认证
 ======
 
+### 安装
+~~~
+composer require myxland/think-auth:dev-master
+php think auth:config
+~~~
+
 ### 导入数据表
 > `think_` 为自定义的数据表前缀
 
-------------------------------
+~~~
+`------------------------------
 -- think_auth_rule，规则表，
 -- id:主键，name：规则唯一标识, title：规则中文名称 status 状态：为1正常，为0禁用，condition：规则表达式，为空表示存在就验证，不为空表示按照条件验证
 ------------------------------
- DROP TABLE IF EXISTS `think_auth_rule`;
+DROP TABLE IF EXISTS `think_auth_rule`;
 CREATE TABLE `think_auth_rule` (  
     `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,  
     `name` char(80) NOT NULL DEFAULT '',  
@@ -42,9 +49,10 @@ CREATE TABLE `think_auth_group_access` (
     KEY `uid` (`uid`), 
     KEY `group_id` (`group_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+~~~
 
-```
 ## 原理
+```
 Auth权限认证是按规则进行认证。
 在数据库中我们有 
 
@@ -57,10 +65,9 @@ Auth权限认证是按规则进行认证。
 下面举例说明：
 
 我们要判断用户是否有显示一个操作按钮的权限， 首先定义一个规则， 在规则表中添加一个名为 show_button 的规则。 然后在用户组表添加一个用户组，定义这个用户组有show_button 的权限规则（think_auth_group表中rules字段存得时规则ID，多个以逗号隔开）， 然后在用户组明细表定义 UID 为1 的用户 属于刚才这个的这个用户组。 
-
+```
 ## 使用
 判断权限方法
-```
 ```
 // 引入类库
 use myxland\auth\Auth;

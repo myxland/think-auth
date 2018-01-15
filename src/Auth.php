@@ -58,6 +58,8 @@ DROP TABLE IF EXISTS `think_auth_group_access`;
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 */
 
+use think\Db;
+
 class Auth
 {
     /**
@@ -89,7 +91,7 @@ class Auth
     public function __construct()
     {
         //可设置配置项 auth, 此配置项为数组。
-        if ($auth = config('auth')) {
+        if ($auth = config('auth.')) {
             $this->config = array_merge($this->config, $auth);
         }
         // 初始化request
