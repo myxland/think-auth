@@ -188,7 +188,14 @@ class Auth
         $auth_group_access = $this->config['auth_group_access'];
         $auth_group        = $this->config['auth_group'];
         // 执行查询
-        $user_groups  = Db::view($auth_group_access, 'uid,group_id')->view($auth_group, 'title,rules', "{$auth_group_access}.group_id={$auth_group}.id", 'LEFT')->where("{$auth_group_access}.uid='{$uid}' and {$auth_group}.status='1'")->select();
+        $map = [
+            [$auth_group_access . '.uid', '=', $uid],
+            [$auth_group . '.status' , '=', 1],
+        ];
+        $user_groups  = Db::view($auth_group_access, 'uid,group_id')
+            ->view($auth_group, 'title,rules', "{$auth_group_access}.group_id={$auth_group}.id", 'LEFT')
+            ->where($map)
+            ->select();
         $groups[$uid] = $user_groups ?: [];
 
         return $groups[$uid];
@@ -224,9 +231,9 @@ class Auth
             return [];
         }
         $map = [
-            'id'     => ['in', $ids],
-            'type'   => $type,
-            'status' => 1,
+            ['id', 'in', $ids],
+            ['type', '=', $type],
+            ['status', '=', 1],
         ];
         //读取用户组所有权限规则
         $rules = db($this->config['auth_rule'])->where($map)->field('condition,name')->select();
@@ -270,14 +277,18 @@ class Auth
         $auth_group = $this->config['auth_group'];
         $auth_rule  = $this->config['auth_rule'];
         // 执行查询
-        $rules = db($auth_group)->where(['status' => 1, 'id' => $gid])->value('rules');
+        $where = [
+            ['status', '=', 1],
+            ['id', '=', $gid],
+        ];
+        $rules = db($auth_group)->where($where)->value('rules');
         // 格式化access表id
         $ids = explode(',', trim($rules, ','));
         $ids = array_unique($ids);
         $map = [
-            'id'     => ['in', $ids],
-            'type'   => $type,
-            'status' => 1,
+            ['id', 'in', $ids],
+            ['type', '=', $type],
+            ['status', '=', 1],
         ];
         //读取用户组所有权限规则
         $rules = db($auth_rule)->where($map)->column('title,name,condition');
@@ -286,7 +297,31 @@ class Auth
     }
 
     /**
+     * 获取用户所有权限
+     *
+     * @param $uid 用户ID
+     *
+     * @return array 权限ID数组
+     */
+    public function getRuleIds($uid)
+    {
+        //读取用户所属用户组
+        $groups = $this->getGroups($uid);
+        $ids = []; //保存用户所属用户组设置的所有权限规则id
+        foreach ($groups as $g)
+        {
+            $ids = array_merge($ids, explode(',', trim($g['rules'], ',')));
+        }
+        $ids = array_unique($ids);
+        return $ids;
+    }
+
+    /**
      * 获得用户资料,根据自己的情况读取数据库
+     *
+     * @param integer $uid 用户ID
+     *
+     * @return array 用户信息
      */
     protected function getUserInfo($uid)
     {

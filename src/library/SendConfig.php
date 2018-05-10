@@ -11,7 +11,7 @@ class SendConfig extends Command
 {
     public function configure()
     {
-        $this->setName('auth:config')->setDescription('send config to tp folder');
+        $this->setName('myxland-auth:config')->setDescription('send config to tp folder');
     }
 
     public function execute(Input $input, Output $output)
