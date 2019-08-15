@@ -20,5 +20,10 @@
         "files": [
             "src/helper.php"
         ]
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "myxland\\auth\\library\\SendConfig::configure"
+        ]
     }
 }
