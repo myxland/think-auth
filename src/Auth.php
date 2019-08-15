@@ -2,6 +2,8 @@
 
 namespace myxland\auth;
 
+use think\facade\Db;
+
 /**
  * 权限认证类
  * 功能特性：
@@ -11,10 +13,10 @@ namespace myxland\auth;
  *      $auth=new Auth();  $auth->check('规则1,规则2','用户id','and')
  *      第三个参数为and时表示，用户需要同时具有规则1和规则2的权限。 当第三个参数为or时，表示用户值需要具备其中一个条件即可。默认为or
  * 3，一个用户可以属于多个用户组(think_auth_group_access表 定义了用户所属用户组)。我们需要设置每个用户组拥有哪些规则(think_auth_group 定义了用户组权限)
- *
  * 4，支持规则表达式。
  *      在think_auth_rule 表中定义一条规则时，如果type为1， condition字段就可以定义规则表达式。 如定义{score}>5  and {score}<100  表示用户的分数在5-100之间时这条规则才会通过。
  */
+
 /*
  * 数据库
 -- ----------------------------
@@ -58,8 +60,6 @@ DROP TABLE IF EXISTS `think_auth_group_access`;
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 */
 
-use think\Db;
-
 class Auth
 {
     /**
@@ -69,7 +69,6 @@ class Auth
 
     /**
      * 当前请求实例
-     *
      * @var Request
      */
     protected $request;
@@ -81,7 +80,8 @@ class Auth
         'auth_group'        => 'auth_group', // 用户组数据表名
         'auth_group_access' => 'auth_group_access', // 用户-用户组关系表
         'auth_rule'         => 'auth_rule', // 权限规则表
-        'auth_user'         => 'admin_user', // 用户信息表
+        'auth_user'         => 'admin', // 用户信息表
+        'auth_user_pk'      => 'id',    // 用户表ID字段名
     ];
 
     /**
@@ -100,7 +100,6 @@ class Auth
 
     /**
      * 初始化
-     *
      * @access public
      * @param array $options 参数
      * @return \think\Request
@@ -116,17 +115,16 @@ class Auth
 
     /**
      * 检查权限
-     *
-     * @param $name string|array  需要验证的规则列表,支持逗号分隔的权限规则或索引数组
-     * @param $uid  int           认证用户的id
-     * @param int $type 认证类型
-     * @param string $mode 执行check的模式
+     * @param        $name     string|array  需要验证的规则列表,支持逗号分隔的权限规则或索引数组
+     * @param        $uid      int           认证用户的id
+     * @param int    $type     认证类型
+     * @param string $mode     执行check的模式
      * @param string $relation 如果为 'or' 表示满足任一条规则即通过验证;如果为 'and'则表示需满足所有规则才能通过验证
      * @return bool               通过验证返回true;失败返回false
      */
     public function check($name, $uid, $type = 1, $mode = 'url', $relation = 'or')
     {
-        if (! $this->config['auth_on']) {
+        if (!$this->config['auth_on']) {
             return true;
         }
         // 获取用户需要验证的所有有效规则列表
@@ -159,7 +157,7 @@ class Auth
                 }
             }
         }
-        if ('or' == $relation && ! empty($list)) {
+        if ('or' == $relation && !empty($list)) {
             return true;
         }
         $diff = array_diff($name, $list);
@@ -172,11 +170,10 @@ class Auth
 
     /**
      * 根据用户id获取用户组,返回值为数组
-     *
      * @param  $uid int     用户id
      * @return array       用户所属的用户组 array(
-     *     array('uid'=>'用户id','group_id'=>'用户组id','title'=>'用户组名称','rules'=>'用户组拥有的规则id,多个,号隔开'),
-     *     ...)
+     *              array('uid'=>'用户id','group_id'=>'用户组id','title'=>'用户组名称','rules'=>'用户组拥有的规则id,多个,号隔开'),
+     *              ...)
      */
     public function getGroups($uid)
     {
@@ -188,14 +185,14 @@ class Auth
         $auth_group_access = $this->config['auth_group_access'];
         $auth_group        = $this->config['auth_group'];
         // 执行查询
-        $map = [
+        $map          = [
             [$auth_group_access . '.uid', '=', $uid],
-            [$auth_group . '.status' , '=', 1],
+            [$auth_group . '.status', '=', 1],
         ];
         $user_groups  = Db::view($auth_group_access, 'uid,group_id')
-            ->view($auth_group, 'title,rules', "{$auth_group_access}.group_id={$auth_group}.id", 'LEFT')
-            ->where($map)
-            ->select();
+                          ->view($auth_group, 'title,rules', "{$auth_group_access}.group_id={$auth_group}.id", 'LEFT')
+                          ->where($map)
+                          ->select();
         $groups[$uid] = $user_groups ?: [];
 
         return $groups[$uid];
@@ -203,7 +200,6 @@ class Auth
 
     /**
      * 获得权限列表
-     *
      * @param integer $uid 用户id
      * @param integer $type
      * @return array
@@ -211,7 +207,7 @@ class Auth
     protected function getAuthList($uid, $type)
     {
         static $_authList = []; //保存用户验证通过的权限列表
-        $t = implode(',', (array) $type);
+        $t = implode(',', (array)$type);
         if (isset($_authList[$uid . $t])) {
             return $_authList[$uid . $t];
         }
@@ -236,11 +232,11 @@ class Auth
             ['status', '=', 1],
         ];
         //读取用户组所有权限规则
-        $rules = db($this->config['auth_rule'])->where($map)->field('condition,name')->select();
+        $rules = Db::name($this->config['auth_rule'])->where($map)->field('condition,name')->select();
         //循环规则，判断结果。
         $authList = []; //
         foreach ($rules as $rule) {
-            if (! empty($rule['condition'])) {
+            if (!empty($rule['condition'])) {
                 //根据condition进行验证
                 $user    = $this->getUserInfo($uid); //获取用户信息,一维数组
                 $command = preg_replace('/\{(\w*?)\}/', '$user[\'\\1\']', $rule['condition']);
@@ -266,8 +262,7 @@ class Auth
 
     /**
      * 获取权限组对应的权限列表
-     *
-     * @param $gid
+     * @param     $gid
      * @param int $type
      * @return array|mixed
      */
@@ -281,7 +276,7 @@ class Auth
             ['status', '=', 1],
             ['id', '=', $gid],
         ];
-        $rules = db($auth_group)->where($where)->value('rules');
+        $rules = Db::name($auth_group)->where($where)->value('rules');
         // 格式化access表id
         $ids = explode(',', trim($rules, ','));
         $ids = array_unique($ids);
@@ -291,25 +286,22 @@ class Auth
             ['status', '=', 1],
         ];
         //读取用户组所有权限规则
-        $rules = db($auth_rule)->where($map)->column('title,name,condition');
+        $rules = Db::name($auth_rule)->where($map)->column('title,name,condition');
 
         return $rules;
     }
 
     /**
      * 获取用户所有权限
-     *
      * @param $uid 用户ID
-     *
      * @return array 权限ID数组
      */
     public function getRuleIds($uid)
     {
         //读取用户所属用户组
         $groups = $this->getGroups($uid);
-        $ids = []; //保存用户所属用户组设置的所有权限规则id
-        foreach ($groups as $g)
-        {
+        $ids    = []; //保存用户所属用户组设置的所有权限规则id
+        foreach ($groups as $g) {
             $ids = array_merge($ids, explode(',', trim($g['rules'], ',')));
         }
         $ids = array_unique($ids);
@@ -318,20 +310,16 @@ class Auth
 
     /**
      * 获得用户资料,根据自己的情况读取数据库
-     *
      * @param integer $uid 用户ID
-     *
      * @return array 用户信息
      */
     protected function getUserInfo($uid)
     {
         static $userinfo = [];
 
-        $user = db($this->config['auth_user']);
         // 获取用户表主键
-        $_pk = is_string($user->getPk()) ? $user->getPk() : 'uid';
-        if (! isset($userinfo[$uid])) {
-            $userinfo[$uid] = $user->where($_pk, $uid)->find();
+        if (!isset($userinfo[$uid])) {
+            $userinfo[$uid] = Db::name($this->config['auth_user'])->where($this->config['auth_user_pk'], $uid)->find();
         }
 
         return $userinfo[$uid];

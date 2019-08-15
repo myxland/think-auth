@@ -1,17 +1,17 @@
 {
     "name": "myxland/think-auth",
-    "description": "Thinkphp 5.1 Auth Library",
+    "description": "Thinkphp 6 Auth Library",
     "type": "think-extend",
     "license": "Apache-2.0",
     "version": "1.0",
     "authors": [
         {
-            "name": "HWJ",
+            "name": "wade",
             "email": "myxland@gmail.com"
         }
     ],
     "require": {
-        "php": ">=5.6.0"
+        "php": ">=7.1.0"
     },
     "autoload": {
         "psr-4": {
