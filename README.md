@@ -1,4 +1,4 @@
-Thinkphp5.1 认证
+Thinkphp6 认证
 ======
 
 ### 安装
