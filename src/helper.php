@@ -1,5 +1,5 @@
 <?php
 
-\think\Console::addDefaultCommands([
+\think\Console::addCommands([
     \myxland\auth\library\SendConfig::class,
 ]);
